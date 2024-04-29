@@ -1,0 +1,87 @@
+title: Attack Tree for EC2 Compromise
+
+facts:
+- public_port: Publicly exposed SSH port
+  from:
+  -  shodan: "#yolosec"
+- weak_ssh_authentication: Weak or missing SSH authentication
+  from:
+  -  compromise_google_account: "#yolosec"
+- late_remediation_secrets: Late remediation of secret scanning alerts
+  from:
+  -  secret_scanning: "#yolosec"
+- late_remediation_access: Late remediation of privileged access alerts
+  from:
+  -  access_slack_alert: "#yolosec"
+- late_remediation_code: Late remediation of code and dependency alerts
+  from:
+  -  static_code_analysis: "#yolosec"
+
+attacks:
+- shodan: Run Shodan or scanning tool
+  from:
+  - reality
+- steal_vpn_config: Steal OGP VPN config from any OGP staff
+  from:
+  - whitelisted_ip
+- compromise_google_account: Compromise Google account of any OGP staff
+  from:
+  - vpn_google_auth
+- run_ssh_command: Run command in SSH session
+  from:
+  - weak_ssh_authentication
+  - steal_ssh_key
+- steal_ssh_key: Steal SSH key from 1Password vault from authorised users
+  from:
+  - ssh_key_authentication
+- scan_repos: Scan public repos for leaked AWS credentials
+  from:
+  - reality
+- access_aws_account: Access AWS account with EC2 privileges
+  from:
+   - scan_repos: "#yolosec"
+   - late_remediation_secrets
+- run_ec2_command: Run command using EC2 instance connect or Session Manager 
+  from:
+  - access_aws_account: "#yolosec"
+  - late_remediation_access
+- compromise_application: Analyse code and dependencies for vulnerabilities
+  from:
+  - reality
+- run_exploit: Run exploit to trigger vulnerability
+  from:
+  - compromise_application
+  - late_remediation_code
+- run_shell_command: Run shell commands
+  from:
+  - run_exploit
+
+mitigations:
+- whitelisted_ip: Whitelisted bastion host via OGP VPN
+  from:
+  - shodan
+- vpn_google_auth: Google authentication for OGP VPN
+  from:
+  - steal_vpn_config
+- ssh_key_authentication: SSH key authentication
+  from:
+  - compromise_google_account
+- secret_scanning: Secret scanning on repositories
+  from:
+  - scan_repos
+- access_slack_alert: Slack alerts on root and break glass account activity
+  from:
+  - access_aws_account
+- static_code_analysis: Code and dependency scanning
+  from:
+  - compromise_application
+- web_application_firewall: WAF
+  from:
+  - run_exploit
+
+goals:
+- ec2_compromise: Run arbitrary commands in EC2 instance
+  from:
+  - run_ssh_command
+  - run_ec2_command
+  - run_shell_command
