@@ -1,0 +1,78 @@
+title: Attack Tree for EC2 Instance Compromise
+
+facts:
+- public_ssh_port: Publicly exposed SSH port
+  from:
+  -  shodan: "#yolo"
+- public_smpp_port: Publicly exposed SMPP port
+  from:
+  -  shodan: "#yolo"
+- weak_ssh_authentication: Weak or missing SSH authentication
+  from:
+  -  public_ssh_port: "#yolo"
+- late_remediation_secrets: Late remediation of secret scanning alerts
+  from:
+  -  secret_scanning: "#yolo"
+- late_remediation_access: Late remediation of privileged access alerts
+  from:
+  -  access_slack_alert: "#yolo"
+
+attacks:
+- shodan: Run Shodan or scanning tool
+  from:
+  - reality
+- run_ssh_command: Run command in SSH session
+  from:
+  - weak_ssh_authentication
+  - steal_ssh_key
+- steal_ssh_key: Steal SSH key from 1Password vault
+  from:
+  - ssh_key_authentication
+- bruteforce_credentials_smpp: Bruteforce SESSION_USERNAME and SESSION_PASSWORD over SMPP
+  from:
+  - public_smpp_port
+- exploit_smpp: Exploit SMPP library or server code
+  from:
+  - public_smpp_port
+- scan_repos: Scan GitHub repos for leaked AWS credentials
+  from:
+  - reality
+- compromise_github: Compromise any OGP user's (~160) personal GitHub account
+  from:
+  - private_repos
+- access_aws_account: Access AWS account with EC2 privileges
+  from:
+   - late_remediation_secrets
+- run_ec2_command: Run command using EC2 instance connect or Session Manager 
+  from:
+  - access_aws_account: "#yolo"
+  - late_remediation_access
+  - compromise_developer: "#yolo"
+- eavesdrop_plaintext: Eavesdrop on plaintext SMPP protocol
+  from:
+  - run_ssh_command
+  - exploit_smpp
+- compromise_developer: Compromise developer endpoint e.g. credential stealer malware
+  from:
+  - reality
+
+mitigations:
+- ssh_key_authentication: SSH key authentication
+  from:
+  - public_ssh_port
+- private_repos: Private repositories
+  from:
+  - scan_repos
+- secret_scanning: Secret scanning on repositories
+  from:
+  - compromise_github
+- access_slack_alert: Slack alerts on root and admin account activity
+  from:
+  - access_aws_account
+
+goals:
+- intercept_smpp: Intercept or forge SMSes
+  from:
+  - eavesdrop_plaintext
+  - run_ec2_command
+  - bruteforce_credentials_smpp
